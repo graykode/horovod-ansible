@@ -1,0 +1,10 @@
+---
+- hosts: all
+
+  tasks:
+
+    - name: Copy the file from ansible to all
+      copy: src=test.c dest=/home/ubuntu/test.c
+
+    - name: Build test.c file to test
+      shell: mpic++ test.c -o test

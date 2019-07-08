@@ -1,0 +1,142 @@
+---
+- hosts: all
+  become: true
+
+  vars:
+    TEMP_LOCATION: /tmp/openmpi
+    FINAL_LOCATION: /usr/local/opt/openmpi
+    MPI_VERSION: 4.0.1
+    MPI_ARCHIVE: https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.1.tar.gz
+
+  tasks:
+
+    - name: Copy the file from ansible to master
+      copy: src=../terraform/horovod dest=/home/ubuntu/.ssh/id_rsa
+      when: "{{ ansible_hostname == 'master' }}"
+
+    - name: Change the hostname to our standard
+      hostname:
+        name={{ inventory_hostname }}
+      when:
+        ansible_fqdn != ansible_ssh_host
+
+    - name: restart machine
+      command: shutdown -r now "Ansible updates triggered"
+      async: 0
+      poll: 0
+      ignore_errors: True
+      when:
+        reboot is defined
+
+    - name: Waiting for server to come back up
+      local_action: wait_for host="{{ ansible_ssh_host }}" port=22 state=started
+
+    - name: Fix /etc/hosts removing the old hostname
+      tags:
+        - all
+      lineinfile:
+        state: present
+        dest: "/etc/hosts"
+        line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['inventory_hostname'] }}"
+      with_items: "{{ groups['all'] }}"
+
+    - name: Fix /etc/hosts.allow
+      tags:
+        - all
+      lineinfile:
+        state: present
+        dest: "/etc/hosts.allow"
+        line: "sshd: ALL"
+
+    - name: Fix bashrc
+      tags:
+        - all
+      lineinfile:
+        state: present
+        dest: "/home/ubuntu/.bashrc"
+        line: "{{ item }}"
+      with_items:
+        - "export PATH=$PATH:/usr/local/opt/openmpi/bin"
+        - "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/opt/openmpi/lib"
+
+    - stat: path=/home/ubuntu/.ssh/config
+      register: p
+
+    - name: create /home/ubuntu/.ssh/config
+      file: path=/home/ubuntu/.ssh/config state=touch owner=ubuntu
+      when: p.stat.exists is defined and not p.stat.exists
+
+    - name: Fix /home/ubuntu/.ssh/config
+      tags:
+        - all
+      lineinfile:
+        state: present
+        dest: "/home/ubuntu/.ssh/config"
+        line: "{{ item }}"
+      with_items:
+        - "StrictHostKeyChecking no"
+
+    - name: Fix /etc/ssh/sshd_config
+      tags:
+        - all
+      lineinfile:
+        state: present
+        dest: "/etc/ssh/sshd_config"
+        line: "{{ item }}"
+      with_items:
+        - "AuthorizedKeysFile     %h/.ssh/authorized_keys"
+
+    - name: restart sshd
+      command: service sshd restart
+
+    - name: Update ubuntu ...
+      apt: update_cache=yes
+
+    - name: Install required packages ...
+      apt: name={{ item }} state=present
+      with_items:
+        - gcc
+        - g++
+        - libopenmpi-dev
+        - python3-pip
+
+    - name: Install necessary packages v{{ MPI_VERSION }} ...
+      apt: name={{ item }} state=present
+      with_items:
+        - libibnetdisc-dev
+
+    - name: Create temp directory ...
+      file: path={{ TEMP_LOCATION }} state=directory mode=0755
+
+    - name: Create final directory ...
+      file: path={{ FINAL_LOCATION }} state=directory
+
+    - name: Untar OpenMPI ...
+      unarchive:
+        src: "{{ MPI_ARCHIVE }}"
+        dest: "{{ TEMP_LOCATION }}"
+        copy: no
+
+    - name: Ansible check file exists example.
+      stat:
+        path: "/usr/bin/mpirun"
+      register: mpirun
+
+    - name: Running the ./configure for OpenMPI (Please be patient) ...
+      command: "{{ item }}"
+      args:
+        chdir: "{{ TEMP_LOCATION }}/openmpi-{{ MPI_VERSION }}"
+      with_items:
+        - ./configure --prefix="{{ FINAL_LOCATION }}" --disable-dlopen --enable-shared --enable-static --enable-orterun-prefix-by-default
+      when: not mpirun.stat.exists
+
+
+    - name: Running the "make" for OpenMPI (Please be patient) ...
+      command: "{{ item }}"
+      ignore_errors: yes
+      args:
+        chdir: "{{ TEMP_LOCATION }}/openmpi-{{ MPI_VERSION }}"
+      with_items:
+        - "make"
+        - "make install"
+      when: not mpirun.stat.exists
