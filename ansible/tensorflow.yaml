@@ -1,0 +1,36 @@
+---
+- hosts: all
+  vars:
+    TF_BINARY_URL: "https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.13.1-cp35-cp35m-linux_x86_64.whl"
+    TF_VERSION : 1.13.1
+    EXAMPLE_FILE : "https://raw.githubusercontent.com/horovod/horovod/master/examples/tensorflow_mnist.py"
+
+  tasks:
+    - name: Check if tensorflow exists
+      command: python3 -c "import tensorflow"
+      register: tf_env_check
+      ignore_errors: yes
+
+    - name: Check tensorflow version
+      command: python3 -c "import tensorflow as tf; print(tf.__version__)"
+      register: tf_version
+      ignore_errors: yes
+
+    - name: Execute script if tensorflow environment doesn't exist
+      command: sudo pip3 install --upgrade {{ TF_BINARY_URL }}
+      when: tf_env_check.stderr.find('ImportError') != -1 or tf_version.stdout.find('{{ TF_VERSION }}') == -1
+
+    - name: Check if horovod exists
+      command: python3 -c "import horovod"
+      register: hd_env_check
+      ignore_errors: yes
+
+    - name: Execute script if horovod environment doesn't exist
+      command: pip3 install horovod
+      when: hd_env_check.stderr.find('ImportError') != -1
+
+    - name: Download Tensorflow Example
+      get_url:
+        url: "{{ EXAMPLE_FILE }}"
+        dest: /home/ubuntu/train.py
+
