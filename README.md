@@ -146,7 +146,7 @@ I'd like you to change this part fluidly.
   $ chmod +x tensorflow.sh && ./tensorflow.sh
   
   # go to master node.
-  ubuntu@master:~$ horovodrun -np 3 -H master,worker0,worker2 python3 tensorflow-train.py
+  ubuntu@master:~$ horovodrun -np 3 -H master,worker0,worker1 python3 tensorflow-train.py
   ```
 
 - Install Pytorch on CPU, Horovod and Run Distributed 
@@ -155,7 +155,7 @@ I'd like you to change this part fluidly.
   $ chmod +x pytorch.sh && ./pytorch.sh
   
   # go to master node.
-  ubuntu@master:~$ horovodrun -np 3 -H master,worker0,worker2 python3 pytorch-train.py
+  ubuntu@master:~$ horovodrun -np 3 -H master,worker0,worker1 python3 pytorch-train.py
   ```
 
 - Issue Note : If you want to change framework after install horovod, you reinstall horovod with `HOROVOD_WITH_*` option, '*' is just framework name. please see [horovod issue](https://github.com/horovod/horovod/issues/314). But in my Ansible Script, I 'm not add it yet.
