@@ -21,7 +21,7 @@
       when: tf_env_check.stderr.find('ImportError') != -1 or tf_version.stdout.find('{{ TF_VERSION }}') == -1
 
     - name: Horovod Install(or re-install)
-      command: pip3 install -U horovod
+      command: pip3 install -v --no-cache-dir horovod
 
     - name: Download Tensorflow Example
       get_url:

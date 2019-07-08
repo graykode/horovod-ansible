@@ -37,7 +37,7 @@
       when: torchvision_env_check.stderr.find('ImportError') != -1 or torchvision_version.stdout.find('{{ TORCHVISION_VERSION }}') == -1
 
     - name: Horovod Install(or re-install)
-      command: pip3 install -U horovod
+      command: pip3 install -v --no-cache-dir horovod
 
     - name: Download Pytorch Example
       get_url:
