@@ -1,6 +1,7 @@
 ## horovod-ansible
 
 <p align="center"><img width="180" src="https://user-images.githubusercontent.com/16640218/34506318-84d0c06c-efe0-11e7-8831-0425772ed8f2.png" />  <img width="120" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Ansible_logo.svg/512px-Ansible_logo.svg.png" /></p>
+
 [Horovod](https://github.com/horovod/horovod) is a distributed training framework for TensorFlow, Keras, PyTorch, and MXNet. [Ansible](https://github.com/ansible/ansible) is a radically simple IT automation system. We can easily install the horovod on all server through its automatic setup on **AWS or On-premise**
 
 ##### Before Start
