@@ -1,0 +1,46 @@
+---
+- hosts: all
+  vars:
+    TORCH_BINARY_URL: "https://download.pytorch.org/whl/cpu/torch-1.1.0-cp35-cp35m-linux_x86_64.whl"
+    TORCHVISION_BINARY_URL: "https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp35-cp35m-linux_x86_64.whl"
+    TORCH_VERSION : 1.1.0
+    TORCHVISION_VERSION : 0.3.0
+    EXAMPLE_FILE : "https://raw.githubusercontent.com/horovod/horovod/master/examples/pytorch_mnist.py"
+
+  tasks:
+    - name: Check if pytorch exists
+      command: python3 -c "import torch"
+      register: torch_env_check
+      ignore_errors: yes
+
+    - name: Check pytorch version
+      command: python3 -c "import torch; print(torch.__version__)"
+      register: torch_version
+      ignore_errors: yes
+
+    - name: Execute script if pytorch environment doesn't exist
+      command: sudo pip3 install --upgrade {{ TORCH_BINARY_URL }}
+      when: torch_env_check.stderr.find('ImportError') != -1 or torch_version.stdout.find('{{ TORCH_VERSION }}') == -1
+
+    - name: Check if torchvision exists
+      command: python3 -c "import torch"
+      register: torchvision_env_check
+      ignore_errors: yes
+
+    - name: Check torchvision version
+      command: python3 -c "import torchvision; print(torchvision.__version__)"
+      register: torchvision_version
+      ignore_errors: yes
+
+    - name: Execute script if torchvision environment doesn't exist
+      command: sudo pip3 install --upgrade {{ TORCHVISION_BINARY_URL }}
+      when: torchvision_env_check.stderr.find('ImportError') != -1 or torchvision_version.stdout.find('{{ TORCHVISION_VERSION }}') == -1
+
+    - name: Horovod Install(or re-install)
+      command: pip3 install -U horovod
+
+    - name: Download Pytorch Example
+      get_url:
+        url: "{{ EXAMPLE_FILE }}"
+        dest: /home/ubuntu/pytorch-train.py
+
